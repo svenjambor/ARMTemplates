@@ -1,0 +1,120 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "containerName": {
+            "defaultValue": "datagatherer1838",
+            "type": "string"
+        },
+        "DNSNameLabel": {
+            "defaultValue": "datagatherer1838",
+            "type": "string"
+        },
+        "StorageAccountName": {
+            "defaultValue": "saiot1838",
+            "type": "string"
+        },
+        "StorageAccountKey": {
+            "type": "string"
+        },
+        "influxDBShare": {
+            "defaultValue": "influxdb",
+            "type": "string"
+        },
+        "paramGrafanaShare": {
+            "defaultValue": "grafana",
+            "type": "string"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2019-12-01",
+            "name": "[parameters('containerName')]",
+            //"location": "[resourceGroup().location]",
+            "location": "northeurope",
+            "properties": {
+                "sku": "Standard",
+                "containers": [
+                    {
+                        "name": "[parameters('containerName')]",
+                        "properties": {
+                            "image": "philhawthorne/docker-influxdb-grafana:latest",
+                            "ports": [
+                                {
+                                    "protocol": "TCP",
+                                    "port": 3003
+                                },
+                                {
+                                    "protocol": "TCP",
+                                    "port": 3004
+                                },
+                                {
+                                    "protocol": "TCP",
+                                    "port": 8086
+                                }
+                            ],
+                            "environmentVariables": [],
+                            "resources": {
+                                "requests": {
+                                    "memoryInGB": 1,
+                                    "cpu": 1
+                                }
+                            },
+                            "volumeMounts": [
+                                {
+                                    "name": "[parameters('influxDBShare')]",
+                                    "mountPath": "/var/lib/influxdb"
+                                },
+                                {
+                                    "name": "[parameters('paramGrafanaShare')]",
+                                    "mountPath": "/var/lib/grafana"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "initContainers": [],
+                "restartPolicy": "Always",
+                "ipAddress": {
+                    "type": "Public",
+                    "dnsNameLabel": "[parameters('DNSNameLabel')]",
+                    "ports": [
+                        {
+                            "protocol": "TCP",
+                            "port": 3003
+                        },
+                        {
+                            "protocol": "TCP",
+                            "port": 3004
+                        },
+                        {
+                            "protocol": "TCP",
+                            "port": 8086
+                        }
+                    ]
+                },
+                "osType": "Linux",
+                "volumes": [
+                    {
+                        "name": "[parameters('influxDBShare')]",
+                        "azureFile": {
+                            "shareName": "[parameters('influxDBShare')]",
+                            "storageAccountName": "[parameters('StorageAccountName')]",
+                            "storageAccountKey": "[parameters('StorageAccountKey')]"
+                        }
+                    },
+                    {
+                        "name": "[parameters('paramGrafanaShare')]",
+                        "azureFile": {
+                            "shareName": "[parameters('paramGrafanaShare')]",
+                            "storageAccountName": "[parameters('StorageAccountName')]",
+                            "storageAccountKey": "[parameters('StorageAccountKey')]"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
